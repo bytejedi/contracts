@@ -32,7 +32,7 @@ contract ZCT {
     uint8 public decimals = 18;
     uint256 public totalSupply = 0;
     address public owner;
-    bool private _paused = false;
+    bool public paused;
 
     /* This creates an array with all balances */
     mapping (address => uint256) public balanceTokenOf; // accounts token balance
@@ -52,15 +52,18 @@ contract ZCT {
     /* This notifies clients about the amount unfrozen */
     event Unfreeze(address indexed from, uint256 value);
 
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     /* Initializes contract with initial supply tokens to the creator of the
     contract */
     constructor() public {
         owner = msg.sender;
+        paused = false;
     }
     /* Send coins */
     function transfer(address _to, uint256 _value) public returns (bool success)
     {
-        require(!_paused);
+        require(!paused);
         // lock all transfer in critical situation
         require(!lockAccountOf[msg.sender], "the sender is lock");
         // need the sender is unlock
@@ -97,7 +100,7 @@ contract ZCT {
     }
     /* A contract attempts to get the coins */
     function transferFrom(address _from, address _to, uint256 _value) public returns (bool success) {
-        require(!_paused);
+        require(!paused);
         // lock all transfor in critical situation cases
         require(!lockAccountOf[msg.sender], "the sender is lock");
         // need the sender is unlock
@@ -173,7 +176,7 @@ contract ZCT {
     }
 
     function batchMint(address[] receivers, uint256 amount) public  returns (bool) {
-        require(!_paused);
+        require(!paused);
         require(msg.sender == owner, "must the owner can mint");
 
         uint arrayLength = receivers.length;
@@ -186,12 +189,12 @@ contract ZCT {
 
         totalSupply = totalSupply.safeAdd(amount.safeMul(arrayLength));
 
-        emit Transfer(address(0), receivers, amount);
+        // emit Transfer(address(0), receivers, amount);
         return true;
     }
 
     function mint(address receiver, uint256 amount) public  returns (bool) {
-        require(!_paused);
+        require(!paused);
         require(msg.sender == owner, "must the owner can mint");
         require(receiver != address(0), "ERC20: mint to the zero address");
 
@@ -248,19 +251,24 @@ contract ZCT {
     function pause() public returns (bool) {
         require(msg.sender == owner);
         // Only Owner
-        _paused = true;
+        paused = true;
         return true;
     }
 
     function unpause() public returns (bool) {
         require(msg.sender == owner);
         // Only Owner
-        _paused = false;
+        paused = false;
         return true;
     }
 
-    function paused() public returns (bool) {
-        return _paused;
+    function transferOwnership(address newOwner) public returns (bool) {
+        require(!paused);
+        require(msg.sender == owner);
+        require(newOwner != address(0), "Ownable: new owner is the zero address");
+        emit OwnershipTransferred(owner, newOwner);
+        owner = newOwner;
+        return true;
     }
 
     function () public payable {
