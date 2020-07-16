@@ -44,7 +44,6 @@ contract ZCT {
     /* This generates a public event on the blockchain that will notify clients
     */
     event Transfer(address indexed from, address indexed to, uint256 value);
-    event BatchTransfer(address indexed from, address[] indexed receivers, uint256[] values);
     /* This generates a public event on the blockchain that will notify clients
     */
     event Approval(address indexed _owner, address indexed _spender, uint256 _value);
@@ -92,24 +91,24 @@ contract ZCT {
         return true;
     }
 
-    function batchTransfer(address[] _receivers, uint256[] _values, uint256 _total_value, uint _len) public returns (bool) {
+    function batchTransfer(address[] _receivers, uint256[] _values, uint _len) public returns (bool) {
         require(!paused);
         require(!lockAccountOf[msg.sender], "the sender is lock");
-        require(balanceTokenOf[msg.sender] >= _total_value);
         require(balanceTokenOf[msg.sender] >= lockTokenOf[msg.sender]);
-        require(balanceTokenOf[msg.sender] >= lockTokenOf[msg.sender] + _total_value);
 
         for(uint i=0; i<_len; i++){
             require(_receivers[i] != address(0), "ERC20: mint to the zero address");
             require(_values[i] > 0);
+            require(balanceTokenOf[msg.sender] >= _values[i]);
+            require(balanceTokenOf[msg.sender] >= lockTokenOf[msg.sender] + _values[i]);
             require(balanceTokenOf[_receivers[i]] + _values[i] >= balanceTokenOf[_receivers[i]]);
             require(balanceTokenOf[_receivers[i]] + _values[i] >= _values[i]);
 
             balanceTokenOf[msg.sender] = balanceTokenOf[msg.sender].safeSub(_values[i]);
             balanceTokenOf[_receivers[i]] = balanceTokenOf[_receivers[i]].safeAdd(_values[i]);
-        }
 
-        emit BatchTransfer(msg.sender, _receivers, _values);
+            emit Transfer(msg.sender, _receivers[i], _values[i]);
+        }
         return true;
     }
 
